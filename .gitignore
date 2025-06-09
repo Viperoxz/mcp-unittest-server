@@ -1,0 +1,5 @@
+.env 
+venv/ 
+generated_tests/ 
+*cache/ 
+workflow_se4ai.png

@@ -7,7 +7,7 @@ from typing import Dict, List, Any, Optional
 import logging
 import requests
 from dotenv import load_dotenv
-
+import openai
 load_dotenv(override=True)
 
 logger = logging.getLogger(__name__)
@@ -24,13 +24,14 @@ class TestGenerator:
     
     def _init_clients(self):
         """Initialize AI clients"""
-        # try:
-        #     openai_key = os.getenv('OPENAI_API_KEY')
-        #     if openai_key:
-        #         self.openai_client = OpenAI(api_key=openai_key)
-        #         logger.info("OpenAI client initialized")
-        # except Exception as e:
-        #     logger.warning(f"Failed to initialize OpenAI client: {e}")
+        try:
+            openai_key = os.getenv('OPENAI_API_KEY')
+            if openai_key:
+                self.openai_client = openai.OpenAI(api_key=openai_key)
+                print("hooray")
+                logger.info("OpenAI client initialized")
+        except Exception as e:
+            logger.warning(f"Failed to initialize OpenAI client: {e}")
         
         # try:
         #     anthropic_key = os.getenv('ANTHROPIC_API_KEY')
@@ -38,15 +39,15 @@ class TestGenerator:
         #         self.anthropic_client = Anthropic(api_key=anthropic_key)
         #         logger.info("Anthropic client initialized")
         # except Exception as e:
-        #     logger.warning(f"Failed to initialize Anthropic client: {e}")
-        try:
-            groq_key = os.getenv('GROQ_API_KEY')
-            if groq_key:
-                print("Initializing Groq client")
-                self.groq_client = groq_key  
-                logger.info("Groq client initialized")
-        except Exception as e:
-            logger.warning(f"Failed to initialize Groq client: {e}")
+        # #     logger.warning(f"Failed to initialize Anthropic client: {e}")
+        # try:
+        #     groq_key = os.getenv('GROQ_API_KEY')
+        #     if groq_key:
+        #         print("Initializing Groq client")
+        #         self.groq_client = groq_key  
+        #         logger.info("Groq client initialized")
+        # except Exception as e:
+        #     logger.warning(f"Failed to initialize Groq client: {e}")
     
     def _load_templates(self) -> Dict[str, str]:
         """Load test templates for different languages and frameworks"""
@@ -183,6 +184,7 @@ describe('{class_name}', () => {{
         
         try:
             if self.openai_client:
+                print("Using GPT for test generation")
                 return self._generate_with_openai(prompt)
             elif self.anthropic_client:
                 return self._generate_with_anthropic(prompt)
@@ -285,9 +287,9 @@ Generate only the test code without explanations.
     def _generate_with_openai(self, prompt: str) -> str:
         """Generate test using OpenAI API"""
         response = self.openai_client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are an expert software engineer specializing in writing comprehensive unit tests. Generate high-quality, well-structured test code."},
+                {"role": "system", "content": "You are an expert software tester specializing in writing comprehensive unit tests. Generate high-quality, well-structured test code."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.1,
@@ -381,6 +383,7 @@ Generate only the test code without explanations.
     
     def _extract_function_code(self, func: Dict[str, Any], source_code: str) -> str:
         """Extract function code from source"""
+        # print(source_code)
         lines = source_code.split('\n')
         start_line = func['start_line'] - 1  # Convert to 0-based index
         end_line = func['end_line']

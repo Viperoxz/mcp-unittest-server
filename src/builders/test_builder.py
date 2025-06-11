@@ -35,10 +35,12 @@ class TestBuilder:
         
         # Create temporary test environment
         temp_dir = self._create_temp_environment(project_path, test_files)
-        
+        print("hihahaha:",temp_dir)
+
         try:
+            pass
             # Validate test syntax
-            syntax_results = self._validate_syntax(test_files, project_info['language'])
+            syntax_results = self._validate_syntax(temp_dir, project_info['language'])
             
             # Compile tests
             compile_results = self._compile_tests(temp_dir, project_info)
@@ -57,7 +59,8 @@ class TestBuilder:
                     'syntax': syntax_results,
                     'compilation': compile_results,
                     'execution': execution_results,
-                    'coverage': coverage_results
+                    # 'coverage': coverage_results
+
                 },
                 'overall_status': self._determine_overall_status(
                     syntax_results, compile_results, execution_results
@@ -135,43 +138,79 @@ class TestBuilder:
         
         return project_info
     
+    # def _create_temp_environment(self, project_path: Path, test_files: List[str]) -> Path:
+    #     """Create temporary environment for testing"""
+    #     temp_dir = Path(tempfile.mkdtemp(prefix='unittest_validation_'))
+    #     self.temp_dirs.append(temp_dir)
+        
+    #     # Copy project structure
+    #     try:
+    #         shutil.copytree(project_path, temp_dir / 'project', 
+    #                       ignore=shutil.ignore_patterns('*.pyc', '__pycache__', 
+    #                                                    'node_modules', 'target', 'build'))
+    #     except Exception as e:
+    #         logger.warning(f"Failed to copy full project: {e}")
+    #         # Create minimal structure
+    #         (temp_dir / 'project').mkdir()
+        
+    #     # Copy test files to appropriate locations
+    #     test_dir = temp_dir / 'project' / 'test_folder'
+    #     test_dir.mkdir(exist_ok=True)
+        
+    #     for test_file in test_files:
+    #         if os.path.exists(test_file):
+    #             dest_file = test_dir / Path(test_file).name
+    #             shutil.copy2(test_file, dest_file)
+        
+    #     return temp_dir
+
     def _create_temp_environment(self, project_path: Path, test_files: List[str]) -> Path:
-        """Create temporary environment for testing"""
+        """Create temporary environment with only specified test files"""
         temp_dir = Path(tempfile.mkdtemp(prefix='unittest_validation_'))
         self.temp_dirs.append(temp_dir)
-        
-        # Copy project structure
-        try:
-            shutil.copytree(project_path, temp_dir / 'project', 
-                          ignore=shutil.ignore_patterns('*.pyc', '__pycache__', 
-                                                       'node_modules', 'target', 'build'))
-        except Exception as e:
-            logger.warning(f"Failed to copy full project: {e}")
-            # Create minimal structure
-            (temp_dir / 'project').mkdir()
-        
-        # Copy test files to appropriate locations
-        test_dir = temp_dir / 'project' / 'tests'
-        test_dir.mkdir(exist_ok=True)
-        
+
+        # Create minimal project structure
+        project_root = temp_dir / 'project'
+        test_dir = project_root / 'test_folder'
+        src_dir = project_root / 'src_folder'
+        test_dir.mkdir(parents=True, exist_ok=True)
+        src_dir.mkdir(parents=True, exist_ok=True)
+
+        for src_file in (Path(project_path)/'src_folder').iterdir():
+            if src_file.is_file():
+                print("src_file:",src_file)
+                dest_file = src_dir / src_file.name
+                shutil.copy2(src_file, dest_file)
+
         for test_file in test_files:
-            if os.path.exists(test_file):
-                dest_file = test_dir / Path(test_file).name
-                shutil.copy2(test_file, dest_file)
-        
+            # print(os.getcwd())
+            src_file = Path(project_path) /'test_folder'/ Path(test_file)
+            if src_file.exists():
+                # print('copy: ',test_file)
+                dest_file = test_dir / src_file.name
+                shutil.copy2(src_file, dest_file)
+            else:
+                logger.warning(f"Test file does not exist: {test_file}")
+
         return temp_dir
+
     
-    def _validate_syntax(self, test_files: List[str], language: str) -> Dict[str, Any]:
+    def _validate_syntax(self, temp_dir: Path, language: str) -> Dict[str, Any]:
         """Validate syntax of test files"""
         results = {
             'status': 'passed',
             'files': {},
             'errors': []
         }
-        
+        test_dir = temp_dir / 'project' / 'test_folder'
+        test_files = [file for file in test_dir.iterdir() if file.is_file()]
+        print("aaaaaaaaaaaaaaa:",test_files)
         for test_file in test_files:
-            if not os.path.exists(test_file):
-                results['files'][test_file] = {
+            # print("****:",os.getcwd())
+            str_test_file = str(test_file)
+            file_name = str(test_file.name)
+            if not test_file.exists():
+                results['files'][file_name] = {
                     'status': 'failed',
                     'error': 'File not found'
                 }
@@ -180,21 +219,21 @@ class TestBuilder:
             
             try:
                 if language == 'python':
-                    self._validate_python_syntax(test_file)
+                    self._validate_python_syntax(str_test_file)
                 elif language == 'java':
-                    self._validate_java_syntax(test_file)
+                    self._validate_java_syntax(str_test_file)
                 elif language == 'javascript':
-                    self._validate_javascript_syntax(test_file)
+                    self._validate_javascript_syntax(str_test_file)
                 
-                results['files'][test_file] = {'status': 'passed'}
+                results['files'][file_name] = {'status': 'passed'}
             
             except Exception as e:
-                results['files'][test_file] = {
+                results['files'][file_name] = {
                     'status': 'failed',
                     'error': str(e)
                 }
                 results['status'] = 'failed'
-                results['errors'].append(f"{test_file}: {str(e)}")
+                results['errors'].append(f"{file_name}: {str(e)}")
         
         return results
     
@@ -249,6 +288,7 @@ class TestBuilder:
     def _compile_tests(self, temp_dir: Path, project_info: Dict[str, Any]) -> Dict[str, Any]:
         """Compile test files"""
         project_dir = temp_dir / 'project'
+        print(f'project_dir: {project_dir}')
         language = project_info['language']
         build_tool = project_info['build_tool']
         
@@ -292,9 +332,10 @@ class TestBuilder:
         
         try:
             # Try to import test modules
-            test_files = list(project_dir.glob('tests/*.py'))
+            test_files = list(project_dir.glob('./test_folder/*.py'))
             
             for test_file in test_files:
+                # print(test_file.name)
                 result = subprocess.run(
                     ['python', '-m', 'py_compile', str(test_file)],
                     capture_output=True,
@@ -302,11 +343,12 @@ class TestBuilder:
                     cwd=project_dir,
                     timeout=30
                 )
-                
+            
                 if result.returncode != 0:
                     results['status'] = 'failed'
                     results['errors'].append(f"Import error in {test_file.name}: {result.stderr}")
-        
+                else:
+                    print("check import successful")
         except Exception as e:
             results['status'] = 'failed'
             results['errors'].append(str(e))
@@ -465,24 +507,24 @@ class TestBuilder:
         
         return results
     
-    def _run_python_tests(self, project_dir: Path, test_framework: str) -> Dict[str, Any]:
+    def _run_python_tests(self, project_dir: Path, test_framework: str = "pytest") -> Dict[str, Any]:
         """Run Python tests"""
         try:
             if test_framework == 'pytest':
-                cmd = ['python', '-m', 'pytest', 'tests/', '-v', '--tb=short']
+                cmd = ['python', '-m', 'pytest', './test_folder']
             else:
-                cmd = ['python', '-m', 'unittest', 'discover', 'tests', '-v']
-            
+                cmd = ['python', '-m', 'unittest', 'discover', 'test_folder', '-v']
+            # print(cmd)/
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 cwd=project_dir,
-                timeout=120
+                timeout=50,
             )
             
             return {
-                'status': 'passed' if result.returncode == 0 else 'failed',
+                'status': 'passed' if result.returncode ==  0 else 'failed',
                 'test_framework': test_framework,
                 'output': result.stdout,
                 'errors': [result.stderr] if result.returncode != 0 else []
@@ -601,3 +643,14 @@ class TestBuilder:
         for temp_dir in self.temp_dirs[:]:
             self._cleanup_temp_dir(temp_dir)
 
+
+if __name__ == "__main__":
+    builder = TestBuilder()
+    res = builder.build_and_validate(
+    test_files= [
+        'test_add.py'
+    ],
+    project_path= 'D:\\code\\HCMus\\SE4AI\\supertest\\mcp-unittest-server'
+    )
+    json_data = json.dumps(res, indent=4)
+    print(json_data)

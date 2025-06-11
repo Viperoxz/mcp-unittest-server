@@ -6,11 +6,16 @@ import sys
 import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-
+from mcp.server.fastmcp import FastMCP, Context  
 # Add src to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from src.mcp.server import MCPServer
+
+mcp = FastMCP(  
+    name="unittest-generator",  
+    instructions="A server for analyzing code and generating unit tests"  
+)  
 
 # Configure logging
 logging.basicConfig(

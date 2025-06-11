@@ -3,3 +3,7 @@ venv/
 generated_tests/ 
 *cache/ 
 workflow_se4ai.png
+t.py
+src_folder/
+test_folder/
+test/

@@ -1,0 +1,36 @@
+name: Local Assistant
+version: 1.0.0
+schema: v1
+models:
+  - name: GPT-4o Mini
+    provider: openai
+    model: gpt-4o-mini
+    
+  - name: GPT-4o 
+    provider: openai
+    model: gpt-4o-mini
+    
+context:
+  - provider: code
+  - provider: docs
+  - provider: diff
+  - provider: terminal
+  - provider: problems
+  - provider: folder
+  - provider: codebase
+  - provider: jira
+    params:
+      domain: company.atlassian.net
+     
+
+mcpServers:
+  - name: UTServer
+    command: C:\\Users\\MTBH\\.local\\bin\\uv.EXE
+    args:  
+      - --directory
+      - "D:\\code\\HCMus\\SE4AI\\supertest\\mcp-unittest-server"
+      - run
+      - "D:/code/HCMus/SE4AI/supertest/mcp-unittest-server/src/mcp_main.py"
+  
+    connectionTimeout: 30000
+    
